@@ -1,7 +1,7 @@
 /* =========================================================
    OK NEXUS — SCRIPT
    Navbar, reveal animations, particles, counters,
-   gallery filter, lightbox, contact form validation
+   gallery filter, lightbox, contact form with EmailJS
    ========================================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -209,11 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
   lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
 
-  /* ---------------------------------------------------------
-     CONTACT FORM VALIDATION
+   /* ---------------------------------------------------------
+     CONTACT FORM — EMAILJS INTEGRATION
   --------------------------------------------------------- */
   const form = document.getElementById('contactForm');
   const formSuccess = document.getElementById('formSuccess');
+
+  // Initialize EmailJS — EXACT key from your dashboard
+  emailjs.init('Ed-YSKpdH9-7V7Ibo');
 
   const validators = {
     fullName: (v) => v.trim().length >= 2 ? '' : 'Please enter your full name.',
@@ -236,10 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (form) {
-    // Live validation on blur
     Object.keys(validators).forEach(field => {
       const el = document.getElementById(field);
-      el.addEventListener('blur', () => showError(field, validators[field](el.value)));
+      if (el) el.addEventListener('blur', () => showError(field, validators[field](el.value)));
     });
 
     form.addEventListener('submit', (e) => {
@@ -260,18 +262,30 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const submitBtn = form.querySelector('.form-submit');
+      const btnText = submitBtn.querySelector('.btn-text');
       submitBtn.classList.add('is-loading');
+      btnText.textContent = 'Sending...';
       formSuccess.classList.remove('is-visible');
 
-      // Simulate submission — this is a frontend-only demo.
-      // Replace this block with a real API/backend call when available.
-      setTimeout(() => {
+      emailjs.send('service_rvj2hk4', 'template_lih9cpb', {
+        from_name: form.fullName.value.trim(),
+        from_email: form.email.value.trim(),
+        phone: form.phone.value.trim(),
+        service: form.serviceRequired.value,
+        message: form.message.value.trim()
+      }).then(() => {
         submitBtn.classList.remove('is-loading');
+        btnText.textContent = 'Submit Enquiry';
         formSuccess.classList.add('is-visible');
         form.reset();
         Object.keys(validators).forEach(field => showError(field, ''));
         formSuccess.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'nearest' });
-      }, 900);
+      }, (error) => {
+        submitBtn.classList.remove('is-loading');
+        btnText.textContent = 'Submit Enquiry';
+        console.error('EmailJS full error:', error);
+        alert('Failed to send. Error: ' + (error.text || 'Unknown'));
+      });
     });
   }
 });
